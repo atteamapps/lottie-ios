@@ -114,3 +114,5 @@ Also check out the documentation regarding it here:
 ### Data collection
 
 The Lottie SDK does not collect any data. We provide this notice to help you fill out [App Privacy Details](https://developer.apple.com/app-store/app-privacy-details/).
+
+This is fork
