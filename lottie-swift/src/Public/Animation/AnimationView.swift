@@ -1026,7 +1026,7 @@ extension AnimationView {
     
     //  Can't use KVO here because frame setter is not getting called in CALayer.
     //  the timer solution seems to be the one reliable
-    func observeLayerFrameChange(keyPath: String, callback: @escaping (CGRect) -> Void) {
+    public func observeLayerFrameChange(keyPath: String, callback: @escaping (CGRect) -> Void) {
         guard let compositeLayers = animationLayer?.animationLayers else { return }
         guard let compositeLayer = compositeLayers.compactMap({ compositeLayer in
             compositeLayer.keypathName == keyPath ? compositeLayer : nil
@@ -1043,7 +1043,7 @@ extension AnimationView {
         }
     }
     
-    func invalidateLayerObservers() {
+    public func invalidateLayerObservers() {
         obsTimers.forEach { $0.invalidate() }
         objc_setAssociatedObject(self, &AssociatedObjectHandle, nil, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
