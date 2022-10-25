@@ -10,6 +10,7 @@ Lottie loads and renders animations and vectors exported in the bodymovin JSON f
 For the first time, designers can create **and ship** beautiful animations without an engineer painstakingly recreating it by hand.
 Since the animation is backed by JSON they are extremely small in size but can be large in complexity!
 Animations can be played, resized, looped, sped up, slowed down, reversed, and even interactively scrubbed.
+MMM
 Lottie can play or loop just a portion of the animation as well, the possibilities are endless!
 Animations can even be ***changed at runtime*** in various ways! Change the color, position or any keyframable value!
 Lottie also supports native UIViewController Transitions out of the box!
