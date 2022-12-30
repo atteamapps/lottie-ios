@@ -1382,3 +1382,50 @@ extension LottieLoopMode {
     }
   }
 }
+
+
+private var AssociatedObjectHandle: UInt8 = 0
+
+extension LottieAnimationView {
+    
+    var obsTimers: [Timer] {
+        get {
+            if let timers = objc_getAssociatedObject(self, &AssociatedObjectHandle) as? [Timer] {
+                return timers
+            } else {
+                let timers = [Timer]()
+                objc_setAssociatedObject(self, &AssociatedObjectHandle, timers, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                return timers
+            }
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedObjectHandle, newValue, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
+    //  Can't use KVO here because frame setter is not getting called in CALayer.
+    //  the timer solution seems to be the one reliable
+    public func observeLayerFrameChange(keyPath: String, callback: @escaping (CGRect) -> Void) {
+        guard let compositeLayers = animationLayer?._animationLayers else { return }
+        let trulyComposite = compositeLayers.compactMap { $0 as? CompositionLayer }
+        guard let compositeLayer = trulyComposite.compactMap({ compositeLayer in
+            compositeLayer.keypathName == keyPath ? compositeLayer : nil
+        }).first else { return }
+        
+        callback(compositeLayer.contentsLayer.frame)
+        if #available(iOSApplicationExtension 10.0, *) {
+            let timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { _ in
+                callback(compositeLayer.contentsLayer.frame)
+            })
+            obsTimers.append(timer)
+        } else {
+            // Fallback on earlier versions
+        }
+    }
+    
+    public func invalidateLayerObservers() {
+        obsTimers.forEach { $0.invalidate() }
+        objc_setAssociatedObject(self, &AssociatedObjectHandle, nil, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+    
+}
