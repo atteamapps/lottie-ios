@@ -1383,7 +1383,6 @@ extension LottieLoopMode {
   }
 }
 
-
 private var AssociatedObjectHandle: UInt8 = 0
 
 extension LottieAnimationView {
@@ -1406,21 +1405,27 @@ extension LottieAnimationView {
     //  Can't use KVO here because frame setter is not getting called in CALayer.
     //  the timer solution seems to be the one reliable
     public func observeLayerFrameChange(keyPath: String, callback: @escaping (CALayer) -> Void) {
-        guard let compositeLayers = animationLayer?._animationLayers else { return }
-        let trulyComposite = compositeLayers.compactMap { $0 as? CompositionLayer }
-        guard let compositeLayer = trulyComposite.compactMap({ compositeLayer in
-            compositeLayer.keypathName == keyPath ? compositeLayer : nil
-        }).first else { return }
+        guard let contentsLayer = contentsLayer(for: keyPath) else { return }
         
-        callback(compositeLayer.contentsLayer)
+        callback(contentsLayer)
         if #available(iOSApplicationExtension 10.0, *) {
             let timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { _ in
-                callback(compositeLayer.contentsLayer)
+                callback(contentsLayer)
             })
             obsTimers.append(timer)
         } else {
             // Fallback on earlier versions
         }
+    }
+    
+    public func contentsLayer(for keyPath: String) -> CALayer? {
+        guard let compositeLayers = animationLayer?._animationLayers else { return nil }
+        let trulyComposite = compositeLayers.compactMap { $0 as? CompositionLayer }
+        guard let compositeLayer = trulyComposite.compactMap({ compositeLayer in
+            compositeLayer.keypathName == keyPath ? compositeLayer : nil
+        }).first else { return nil }
+        
+        return compositeLayer.contentsLayer
     }
     
     public func invalidateLayerObservers() {
