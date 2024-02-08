@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - CoordinateSpace
 
-public enum CoordinateSpace: Int, Codable {
+public enum CoordinateSpace: Int, Codable, Sendable {
   case type2d
   case type3d
 }
@@ -20,7 +20,7 @@ public enum CoordinateSpace: Int, Codable {
 ///
 /// A `LottieAnimation` holds all of the animation data backing a Lottie Animation.
 /// Codable, see JSON schema [here](https://github.com/airbnb/lottie-web/tree/master/docs/json).
-public final class LottieAnimation: Codable, DictionaryInitializable {
+public final class LottieAnimation: Codable, Sendable, DictionaryInitializable {
 
   // MARK: Lifecycle
 
@@ -68,7 +68,7 @@ public final class LottieAnimation: Codable, DictionaryInitializable {
     let layerDictionaries: [[String: Any]] = try dictionary.value(for: CodingKeys.layers)
     layers = try [LayerModel].fromDictionaries(layerDictionaries)
     if let glyphDictionaries = dictionary[CodingKeys.glyphs.rawValue] as? [[String: Any]] {
-      glyphs = try glyphDictionaries.map({ try Glyph(dictionary: $0) })
+      glyphs = try glyphDictionaries.map { try Glyph(dictionary: $0) }
     } else {
       glyphs = nil
     }
@@ -83,7 +83,7 @@ public final class LottieAnimation: Codable, DictionaryInitializable {
       assetLibrary = nil
     }
     if let markerDictionaries = dictionary[CodingKeys.markers.rawValue] as? [[String: Any]] {
-      let markers = try markerDictionaries.map({ try Marker(dictionary: $0) })
+      let markers = try markerDictionaries.map { try Marker(dictionary: $0) }
       var markerMap: [String: Marker] = [:]
       for marker in markers {
         markerMap[marker.name] = marker
@@ -157,4 +157,23 @@ public final class LottieAnimation: Codable, DictionaryInitializable {
   /// Markers
   let markers: [Marker]?
   let markerMap: [String: Marker]?
+
+  /// The marker to use if "reduced motion" is enabled.
+  /// Supported marker names are case insensitive, and include:
+  ///  - reduced motion
+  ///  - reducedMotion
+  ///  - reduced_motion
+  ///  - reduced-motion
+  var reducedMotionMarker: Marker? {
+    let allowedReducedMotionMarkerNames = Set([
+      "reduced motion",
+      "reduced_motion",
+      "reduced-motion",
+      "reducedmotion",
+    ])
+
+    return markers?.first(where: { marker in
+      allowedReducedMotionMarkerNames.contains(marker.name.lowercased())
+    })
+  }
 }

@@ -59,9 +59,7 @@ extension LottieAnimation {
 
     do {
       /// Decode animation.
-      guard let json = try bundle.getAnimationData(name, subdirectory: subdirectory) else {
-        return nil
-      }
+      let json = try bundle.getAnimationData(name, subdirectory: subdirectory)
       let animation = try LottieAnimation.from(data: json)
       animationCache?.setAnimation(animation, forKey: cacheKey)
       return animation
@@ -97,7 +95,10 @@ extension LottieAnimation {
       animationCache?.setAnimation(animation, forKey: filepath)
       return animation
     } catch {
-      /// Decoding Error.
+      LottieLogger.shared.warn("""
+        Failed to load animation from filepath \(filepath)
+        with underlying error: \(error.localizedDescription)
+        """)
       return nil
     }
   }
@@ -125,18 +126,19 @@ extension LottieAnimation {
       return animation
     }
 
-    /// Load jsonData from Asset
-    guard let json = Data.jsonData(from: name, in: bundle) else {
-      return nil
-    }
-
     do {
+      /// Load jsonData from Asset
+      let json = try Data(assetName: name, in: bundle)
       /// Decode animation.
       let animation = try LottieAnimation.from(data: json)
       animationCache?.setAnimation(animation, forKey: cacheKey)
       return animation
     } catch {
-      /// Decoding error.
+      LottieLogger.shared.warn("""
+        Failed to load animation with asset name \(name)
+        in \(bundle.bundlePath)
+        with underlying error: \(error.localizedDescription)
+        """)
       return nil
     }
   }
@@ -149,8 +151,8 @@ extension LottieAnimation {
   ///
   public static func from(
     data: Data,
-    strategy: DecodingStrategy = LottieConfiguration.shared.decodingStrategy) throws
-    -> LottieAnimation
+    strategy: DecodingStrategy = LottieConfiguration.shared.decodingStrategy)
+    throws -> LottieAnimation
   {
     switch strategy {
     case .legacyCodable:
@@ -161,6 +163,29 @@ extension LottieAnimation {
         throw InitializableError.invalidInput
       }
       return try LottieAnimation(dictionary: dict)
+    }
+  }
+
+  /// Loads a Lottie animation asynchronously from the URL.
+  ///
+  /// - Parameter url: The url to load the animation from.
+  /// - Parameter animationCache: A cache for holding loaded animations. Defaults to `LottieAnimationCache.shared`. Optional.
+  ///
+  @available(iOS 13.0, macOS 10.15, tvOS 13.0, *)
+  public static func loadedFrom(
+    url: URL,
+    session: URLSession = .shared,
+    animationCache: AnimationCacheProvider? = LottieAnimationCache.shared)
+    async -> LottieAnimation?
+  {
+    await withCheckedContinuation { continuation in
+      LottieAnimation.loadedFrom(
+        url: url,
+        session: session,
+        closure: { result in
+          continuation.resume(returning: result)
+        },
+        animationCache: animationCache)
     }
   }
 
@@ -280,3 +305,15 @@ extension LottieAnimation {
     CGFloat(time * framerate) + startFrame
   }
 }
+
+// MARK: - Foundation.Bundle + Sendable
+
+/// Necessary to suppress warnings like:
+/// ```
+/// Non-sendable type 'Bundle' exiting main actor-isolated context in call to non-isolated
+/// static method 'named(_:bundle:subdirectory:dotLottieCache:)' cannot cross actor boundary
+/// ```
+/// This retroactive conformance is safe because Sendable is a marker protocol that doesn't
+/// include any runtime component. Multiple modules in the same package graph can provide this
+/// conformance without causing any conflicts.
+extension Foundation.Bundle: @unchecked Sendable { }

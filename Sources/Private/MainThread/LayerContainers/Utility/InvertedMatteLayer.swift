@@ -39,7 +39,6 @@ final class InvertedMatteLayer: CALayer, CompositionLayerDelegate {
   // MARK: Internal
 
   let inputMatte: CompositionLayer?
-  let wrapperLayer = CALayer()
 
   func frameUpdated(frame _: CGFloat) {
     setNeedsDisplay()
@@ -48,9 +47,7 @@ final class InvertedMatteLayer: CALayer, CompositionLayerDelegate {
 
   override func draw(in ctx: CGContext) {
     guard let inputMatte = inputMatte else { return }
-    guard let fillColor = CGColor(colorSpace: CGColorSpaceCreateDeviceRGB(), components: [0, 0, 0, 1])
-    else { return }
-    ctx.setFillColor(fillColor)
+    ctx.setFillColor(.rgb(0, 0, 0))
     ctx.fill(bounds)
     ctx.setBlendMode(.destinationOut)
     inputMatte.render(in: ctx)
